@@ -1,0 +1,175 @@
+use std::ops::{Not, Range};
+
+use serde::{Deserialize, Serialize};
+use serde_tuple::{Deserialize_tuple, Serialize_tuple};
+use strum::{IntoEnumIterator, VariantArray};
+use strum_macros::{EnumIter, VariantArray};
+
+use crate::game::{Card, DECK_SIZE, NUM_SUITS};
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Wing {
+    Left, Right
+}
+
+impl Not for Wing {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Wing::Left => Wing::Right,
+            Wing::Right => Wing::Left,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Serialize, Deserialize, Debug, PartialEq, Eq, EnumIter, VariantArray)]
+#[repr(u8)]
+pub enum DepotRole {
+    Foundation,
+    FreeCell,
+    Tableau,
+}
+
+pub const NUM_DEPOTS: usize = {
+    let mut sum = 0;
+    let mut index = 0;
+    while index < DepotRole::VARIANTS.len() {
+        sum += DepotRole::VARIANTS[index].number_of();
+        index += 1;
+    }
+    sum
+};
+
+impl DepotRole {
+    pub const fn number_of(&self) -> usize {
+        match self {
+            DepotRole::Foundation => NUM_SUITS,
+            DepotRole::FreeCell => 4,
+            DepotRole::Tableau => 10,
+        }
+    }
+
+    pub const fn offset(self) -> usize {
+        let mut sum = 0;
+        let mut index = 0;
+        loop {
+            if index == self as usize { return sum; }
+            sum += DepotRole::VARIANTS[index].number_of();
+            index += 1;
+        }
+    }
+
+    pub const fn range(self) -> Range<usize> {
+        self.offset() .. self.offset() + self.number_of()
+    }
+
+    pub fn role_and_subindex(i: usize) -> Option<(DepotRole, usize)> {
+        for role in Self::iter() {
+            if role.range().contains(&i) {
+                return Some((role, i - role.offset()))
+            }
+        }
+        None
+    }
+
+    pub fn role(i: usize) -> Option<DepotRole> {
+        Self::role_and_subindex(i).map(|x| x.0)
+    }
+
+    pub fn id(self, i: usize) -> usize {
+        self.offset() + i
+    }
+
+    pub fn wing(i: usize) -> Option<Wing> {
+        let (role, index) = Self::role_and_subindex(i)?;
+        if role == DepotRole::Foundation { None } else {
+            Some(if index < role.number_of() / 2 {Wing::Left} else {Wing::Right})
+        }
+    }
+
+    // pub fn opposite_wing(i: usize) -> Option<Wing> {
+    //     Self::wing(i).map(|wing| !wing)
+    // }
+}
+
+#[derive(Copy, Clone, Serialize_tuple, Deserialize_tuple, Debug, PartialEq, Eq)]
+pub struct BoardPos {
+    pub depot_index: usize,
+    pub card_index: usize,
+}
+
+impl BoardPos {
+    pub fn new(depot_index: usize, card_index: usize) -> Self {
+        Self { depot_index, card_index }
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum AnimationAct {
+    Move(Vec<Card>, BoardPos, BoardPos),
+}
+
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct Board {
+    pub depots: Vec<Vec<Card>>,
+    pub selected: Option<BoardPos>,
+    pub animation_acts: Vec<AnimationAct>,
+}
+
+impl Board {
+    pub fn empty() -> Self {
+        Self {
+            depots: vec![vec![]; NUM_DEPOTS],
+            selected: None,
+            animation_acts: vec![],
+        }
+    }
+
+    pub fn from_deal(deal: &[Card]) -> Self {
+        use DepotRole::*;
+        assert_eq!(deal.len(), DECK_SIZE);
+
+        let mut res = Self::empty();
+        let mut tableau_ite = std::iter::repeat(Tableau.range()).flatten();
+        tableau_ite.next(); // rotate so that first and last columns will be short
+
+        let mut foundation_ite = Foundation.range();
+        for &card in deal {
+            if card.rank == 1 {
+                res.depots[foundation_ite.next().unwrap()].push(card);
+            } else {
+                res.depots[tableau_ite.next().unwrap()].push(card);
+            }
+        }
+
+        res
+    }
+
+    pub fn do_move(&mut self, pos1: BoardPos, pos2: BoardPos) {
+        self.selected = None;
+        let cards = self.depots[pos1.depot_index].drain(pos1.card_index ..).collect();
+        self.animation_acts.push(
+            AnimationAct::Move(cards, pos1, pos2)
+        );
+    }
+
+    pub fn advance_actions(&mut self) {
+        for act in self.animation_acts.drain(..) {
+            match act {
+                AnimationAct::Move(cards, _pos1, pos2) => {
+                    self.depots[pos2.depot_index].extend(cards);
+                },
+            }
+        }
+    }
+
+    // pub fn top_pos(&self, depot: usize) -> BoardPos {
+    //     BoardPos::new(depot, self.depots[depot].len())
+    // }
+
+    // pub fn last_pos(&self, depot: usize) -> BoardPos {
+    //     BoardPos::new(depot, self.depots[depot].len().wrapping_sub(1))
+    // }
+}
