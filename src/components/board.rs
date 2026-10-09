@@ -30,8 +30,8 @@ pub fn BoardComponent(
 
     let foundation_x = 50. - depot_row_width(DepotRole::Foundation.number_of()) / 2.;
     let left_wing_x = start_x;
-    let right_wing_freecell_x = 100. - spacer_x - depot_row_width(DepotRole::FreeCell.number_of() / 2);
-    let right_wing_tableau_x = 100. - spacer_x - depot_row_width(DepotRole::Tableau.number_of() / 2);
+    let right_wing_freecell_x = 100. - start_x - depot_row_width(DepotRole::FreeCell.number_of() / 2);
+    let right_wing_tableau_x = 100. - start_x - depot_row_width(DepotRole::Tableau.number_of() / 2);
 
     let cell_space_x = card_width + spacer_x;
     let pos_y = |i: usize| start_y + (card_height + spacer_y) * i as f32;
@@ -41,15 +41,19 @@ pub fn BoardComponent(
 
     let get_pos = |depot: usize, ord: usize| {
         let (role, index) = DepotRole::role_and_subindex(depot).unwrap();
+        let hindex = index % (role.number_of() / 2);
         match role {
             DepotRole::Foundation => Vec2::new(foundation_x + cell_space_x * index as f32, pos_y(0)),
             DepotRole::FreeCell => {
-                let x = if DepotRole::wing(depot) == Some(Wing::Left) {left_wing_x} else {right_wing_freecell_x};
+                
+                let x = if DepotRole::wing(depot) == Some(Wing::Left) {left_wing_x} else {right_wing_freecell_x}
+                    + cell_space_x * hindex as f32;
                 Vec2::new(x, pos_y(0) + offset_y)
             },
             DepotRole::Tableau => {
-                let x = if DepotRole::wing(depot) == Some(Wing::Left) {left_wing_x} else {right_wing_tableau_x};
-                Vec2::new(x, pos_y(0) + offset_y) + column_card_offset * ord as f32
+                let x = if DepotRole::wing(depot) == Some(Wing::Left) {left_wing_x} else {right_wing_tableau_x}
+                    + cell_space_x * hindex as f32;
+                Vec2::new(x, pos_y(1) + offset_y) + column_card_offset * ord as f32
             },
         }
     };
