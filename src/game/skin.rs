@@ -1,3 +1,5 @@
+use std::ops::Not;
+
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumIter, FromRepr};
 
@@ -89,6 +91,23 @@ const COLOR_GREY: [&str; 2] = ["#555", "#ccc"];
 #[repr(u8)]
 pub enum ColorMode {
     #[default] Dark, Light
+}
+
+impl Not for ColorMode {
+    type Output = Self;
+
+    fn not(self) -> Self::Output {
+        match self {
+            ColorMode::Dark => ColorMode::Light,
+            ColorMode::Light => ColorMode::Dark,
+        }
+    }
+}
+
+impl ColorMode {
+    pub fn choose<T>(self, light: T, dark: T) -> T {
+        if self == ColorMode::Light {light} else {dark}
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Debug, EnumIter, strum_macros::Display, Default, FromRepr)]
