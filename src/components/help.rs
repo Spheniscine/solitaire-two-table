@@ -67,7 +67,7 @@ pub fn Help(mut game_state: Signal<GameState>) -> Element {
             }
 
             p {
-                "Cards moving to a " Emph {"tableau"} " stack must come from the " Emph {"opposite wing"} ", with one exception:
+                "Cards moving to a " Emph {"tableau"} " column must come from the " Emph {"opposite wing"} ", with one exception:
                 Cards moving to an " Emph {"empty"} " tableau column may come from either wing."
             }
 

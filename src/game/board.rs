@@ -77,9 +77,9 @@ impl DepotRole {
         Self::role_and_subindex(i).map(|x| x.0)
     }
 
-    pub fn id(self, i: usize) -> usize {
-        self.offset() + i
-    }
+    // pub fn id(self, i: usize) -> usize {
+    //     self.offset() + i
+    // }
 
     pub fn wing(i: usize) -> Option<Wing> {
         let (role, index) = Self::role_and_subindex(i)?;
