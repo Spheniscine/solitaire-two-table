@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{components::CardText, game::{Card, ColorSkin, GameState, Suit}};
+use crate::{components::{CardText, VIDEO_GAMEPLAY, rem}, game::{Card, ColorSkin, GameState, ScreenState, Suit}};
 
 #[component]
 fn Emph(children: Element) -> Element {
@@ -56,7 +56,7 @@ pub fn Help(mut game_state: Signal<GameState>) -> Element {
 
             p {
                 "The 10 " Emph {"tableau"} " columns and the 4 " Emph {"free cells"} " are evenly divided among 2 " Emph {"wings"}
-                ". The 4 " Emph {"foundation"} " stacks belong to neither wing."
+                ". The 4 " Emph {"foundations"} " belong to neither wing."
             }
 
             p {
@@ -68,7 +68,7 @@ pub fn Help(mut game_state: Signal<GameState>) -> Element {
 
             p {
                 "Cards moving to a " Emph {"tableau"} " stack must come from the " Emph {"opposite wing"} ", with one exception:
-                Cards moving to an empty tableau column may come from either wing."
+                Cards moving to an " Emph {"empty"} " tableau column may come from either wing."
             }
 
             p {
@@ -82,6 +82,35 @@ pub fn Help(mut game_state: Signal<GameState>) -> Element {
 
             p {
                 Emph{"Shortcut note:"}," Double-clicking on a card will try to move it to the foundations if possible, or a free cell otherwise."
+            }
+
+            div {
+                position: "absolute",
+                bottom: rem(2.),
+                width: "92rem",
+                display: "flex",
+                justify_content: "center",
+
+                a {
+                    href: VIDEO_GAMEPLAY,
+                    target: "_blank",
+                    text_decoration: "none",
+                    margin_right: rem(4.),
+                    div {
+                        width: rem(30.),
+                        position: "relative",
+                        class: "game-button",
+                        "Example video"
+                    }
+                }
+
+                div {
+                    width: rem(30.),
+                    position: "relative",
+                    class: "game-button",
+                    onclick: move |_| game_state.write().screen_state = ScreenState::Game,
+                    "Back to game"
+                }
             }
         }
     }
